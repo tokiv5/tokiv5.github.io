@@ -43,7 +43,7 @@
 <div class="intrude-less">
 	<header id="header" class="inner">
 		<a href="" class="profilepic">
-			<img src="https://wx1.sinaimg.cn/orj480/007fIagcly8h01pyd7434j30rt0rtmz3.jpg" class="js-avatar">
+			<img src="/ava.jpg" class="js-avatar">
 		</a>
 		<hgroup>
 		  <h1 class="header-author"><a href=""></a></h1>
@@ -99,7 +99,7 @@
 	<div class="intrude-less">
 		<header id="header" class="inner">
 			<div class="profilepic">
-				<img src="https://wx1.sinaimg.cn/orj480/007fIagcly8h01pyd7434j30rt0rtmz3.jpg" class="js-avatar">
+				<img src="/ava.jpg" class="js-avatar">
 			</div>
 			<hgroup>
 			  <h1 class="header-author js-header-author"></h1>
@@ -146,6 +146,153 @@
           <div id="js-content" class="content-ll">
             
   
+    <article id="post-risc-v-1-取指模块" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2022/07/26/risc-v-1-%E5%8F%96%E6%8C%87%E6%A8%A1%E5%9D%97/">risc-v(1) 取指模块</a>
+    </h1>
+  
+
+        
+        <a href="/2022/07/26/risc-v-1-%E5%8F%96%E6%8C%87%E6%A8%A1%E5%9D%97/" class="archive-article-date">
+  	<time datetime="2022-07-26T01:23:40.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2022-07-26</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="Risc-v-1-取指模块-IFU"><a href="#Risc-v-1-取指模块-IFU" class="headerlink" title="Risc-v (1) 取指模块(IFU)"></a>Risc-v (1) 取指模块(IFU)</h1><p>流水线的第一级是取指，将指令从内存中取出，预测并生成下一条指令的地址。目前所有指令都从直接相连的内存中读取，暂时没有考虑外设。</p>
+<p><img src="/images/ifu.png" alt="test"></p>
+<h3 id="MEMORY"><a href="#MEMORY" class="headerlink" title="MEMORY"></a>MEMORY</h3><p>一个异步读取的内存模块，实现方式就是简单的二维向量。</p>
+<pre><code>-- ...
+type mem_t is array (MEM_DEPTH - 1 downto 0) of std_logic_vector(REG_WIDTH - 1 downto 0);
+signal instr_mem : mem_t:= MEM;
+-- ...
+</code></pre>
+<h3 id="Mini-decoder"><a href="#Mini-decoder" class="headerlink" title="Mini-decoder"></a>Mini-decoder</h3><p>用于初步检测指令类型，识别取出的指令是否是跳转，交由分支预测器处理。riscv指令集的立即数是乱序的，据说是为了节省处理时的选择器数量，但我目前还没有感受到，期待进一步理解。</p>
+<h3 id="BPU"><a href="#BPU" class="headerlink" title="BPU"></a>BPU</h3><p>这里使用了简单的静态预测，即对于条件分支语句，向后跳转默认为跳，向前默认为不跳。</p>
+<pre><code>-- predict jumping for jal and jalr, bxx when jump back
+add_op2 &lt;= bjp_imm when (is_jal = &#39;1&#39; or is_jalr = &#39;1&#39; or (is_bxx = &#39;1&#39; and bjp_imm(REG_WIDTH - 1) = &#39;1&#39;)) 
+        else conv_std_logic_vector(4, REG_WIDTH);
+</code></pre>
+<p>同时这个模块兼顾了生成新PC的功能，因此，需要处理可能存在的RAW冲突，如果读取的存储地址的寄存器正在被写入，则暂停流水线。</p>
+<pre><code>bpu_wait &lt;= &#39;1&#39; when ((is_rf_write = &#39;1&#39;) and (rf_write_addr = jalr_rs1) and (is_jalr = &#39;1&#39;)) else &#39;0&#39;;
+</code></pre>
+<h3 id="IF-ID"><a href="#IF-ID" class="headerlink" title="IF-ID"></a>IF-ID</h3><p>IFU模块向下一级输出的寄存器，没什么特别的。</p>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2022/07/26/risc-v-1-%E5%8F%96%E6%8C%87%E6%A8%A1%E5%9D%97/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+
+  
+    <article id="post-risc-v-处理器" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2022/07/26/risc-v-%E5%A4%84%E7%90%86%E5%99%A8/">risc-v 处理器</a>
+    </h1>
+  
+
+        
+        <a href="/2022/07/26/risc-v-%E5%A4%84%E7%90%86%E5%99%A8/" class="archive-article-date">
+  	<time datetime="2022-07-26T01:12:56.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2022-07-26</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="RISC-V-处理器设计"><a href="#RISC-V-处理器设计" class="headerlink" title="RISC-V 处理器设计"></a>RISC-V 处理器设计</h1><p>最近出于练习写hdl的目的打算试着做一下risc-v处理器，正好学校的fpga因为上学期实验过于摸鱼快放假了才做完所以还拿在我自己手里，直接可以上板子测试。之前有写过MIPS五级流水和一个基于状态机实现的CISC处理器，整体上看都比risc-v简单很多。</p>
+<p>设计思路上整体参考了俩开源项目：</p>
+<p>tiny-riscv: <a target="_blank" rel="noopener" href="https://gitee.com/liangkangnan/tinyriscv/">https://gitee.com/liangkangnan/tinyriscv/</a></p>
+<p>e203 hbird: <a target="_blank" rel="noopener" href="https://github.com/riscv-mcu/e203_hbirdv2">https://github.com/riscv-mcu/e203_hbirdv2</a></p>
+<p>初步计划是先实现基础的RV32I指令集，再逐步添加浮点数处理等其他指令。</p>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2022/07/26/risc-v-%E5%A4%84%E7%90%86%E5%99%A8/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+
+  
     <article id="post-关于这个博客的作用" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
@@ -167,7 +314,7 @@
     <div class="article-entry" itemprop="articleBody">
       
         <p>时隔了很久总算是又想起来我有这么回事了</p>
-<p>总之会用来记录一下生活和学习和工作吧。内容应该包括ic设计/验证，历史和文学以及各路消费主义娱乐产品，如果真的有人来看的话，欢迎加我交个朋友呀！</p>
+<p>总之会用来记录一下生活和学习和工作吧。内容应该包括ic设计&#x2F;验证，历史和文学以及各路消费主义娱乐产品，如果真的有人来看的话，欢迎加我交个朋友呀！</p>
 
       
 
